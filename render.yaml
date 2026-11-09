@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: enlaces-plus
+    runtime: docker
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      - key: ENLACES_API_TOKEN
+        generateValue: true
+      - key: WHISPER_MODEL
+        value: small
+      - key: MAX_FILE_BYTES
+        value: "209715200"
