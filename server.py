@@ -27,7 +27,7 @@ from starlette.responses import JSONResponse, Response
 import uvicorn
 
 SERVICE_NAME = "Enlaces+"
-MODEL_SIZE = os.getenv("WHISPER_MODEL", "base")
+MODEL_SIZE = os.getenv("WHISPER_MODEL", "tiny")
 MAX_FILE_BYTES = int(os.getenv("MAX_FILE_BYTES", str(200 * 1024 * 1024)))
 MAX_CONCURRENT_JOBS = max(1, int(os.getenv("MAX_CONCURRENT_JOBS", "1")))
 API_TOKEN = os.getenv("ENLACES_API_TOKEN", "")
