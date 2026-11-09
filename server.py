@@ -33,15 +33,8 @@ MAX_CONCURRENT_JOBS = max(1, int(os.getenv("MAX_CONCURRENT_JOBS", "1")))
 API_TOKEN = os.getenv("ENLACES_API_TOKEN", "")
 PORT = int(os.getenv("PORT", "8000"))
 
-security = TransportSecuritySettings(allowed_hosts=_allowed_hosts())
-mcp = FastMCP(
-    SERVICE_NAME,
-    host="0.0.0.0",
-    port=PORT,
-    transport_security=security,
-    session_idle_timeout=300,
-    max_sessions=10,
-)
+mcp: FastMCP
+
 _model: WhisperModel | None = None
 _model_lock = threading.Lock()
 _job_limit = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
@@ -56,6 +49,17 @@ def _allowed_hosts() -> list[str]:
         return [external, f"{external}:*"]
     # Safe defaults for local development and automated tests.
     return ["localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*", "[::1]", "[::1]:*"]
+
+
+security = TransportSecuritySettings(allowed_hosts=_allowed_hosts())
+mcp = FastMCP(
+    SERVICE_NAME,
+    host="0.0.0.0",
+    port=PORT,
+    transport_security=security,
+    session_idle_timeout=300,
+    max_sessions=10,
+)
 
 
 def _validate_url(url: str) -> str:
