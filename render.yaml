@@ -9,7 +9,7 @@ services:
       - key: ENLACES_API_TOKEN
         generateValue: true
       - key: WHISPER_MODEL
-        value: base
+        value: tiny
       - key: MAX_FILE_BYTES
         value: "209715200"
       - key: MAX_CONCURRENT_JOBS
