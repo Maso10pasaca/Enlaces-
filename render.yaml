@@ -1,13 +1,16 @@
 services:
   - type: web
-    name: enlaces-plus
+    name: enlaces-plus-maso10pasaca
     runtime: docker
-    plan: starter
-    healthCheckPath: /
+    plan: free
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 60
     envVars:
       - key: ENLACES_API_TOKEN
         generateValue: true
       - key: WHISPER_MODEL
-        value: small
+        value: base
       - key: MAX_FILE_BYTES
         value: "209715200"
+      - key: MAX_CONCURRENT_JOBS
+        value: "1"
