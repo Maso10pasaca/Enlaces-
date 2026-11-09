@@ -1,12 +1,16 @@
 import socket
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
+import pytest
 from starlette.testclient import TestClient
 
 import server
+
+
+@pytest.fixture(scope="module")
+def client():
+    # Reuse one lifespan-managed MCP session manager for the whole test module.
+    with TestClient(server.app, base_url="http://localhost") as test_client:
+        yield test_client
 
 
 def _dns_result(address: str):
@@ -20,64 +24,45 @@ def test_validate_accepts_public_https_domain(monkeypatch):
 
 
 def test_validate_rejects_http():
-    try:
+    with pytest.raises(ValueError, match="HTTPS"):
         server._validate_url("http://example.com/video")
-    except ValueError as exc:
-        assert "HTTPS" in str(exc)
-    else:
-        raise AssertionError("HTTP URL should be rejected")
 
 
 def test_validate_rejects_embedded_credentials():
-    try:
+    with pytest.raises(ValueError, match="credenciales"):
         server._validate_url("https://user:password@example.com/video")
-    except ValueError as exc:
-        assert "credenciales" in str(exc)
-    else:
-        raise AssertionError("URLs with embedded credentials should be rejected")
 
 
 def test_validate_rejects_private_dns(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", lambda *args, **kwargs: _dns_result("127.0.0.1"))
-    try:
+    with pytest.raises(ValueError, match="no pública"):
         server._validate_url("https://example.com/video")
-    except ValueError as exc:
-        assert "no pública" in str(exc)
-    else:
-        raise AssertionError("Private DNS result should be rejected")
 
 
 def test_validate_rejects_nonstandard_port():
-    try:
+    with pytest.raises(ValueError, match="443"):
         server._validate_url("https://example.com:8443/video")
-    except ValueError as exc:
-        assert "443" in str(exc)
-    else:
-        raise AssertionError("Non-standard HTTPS port should be rejected")
 
 
-def test_health_route_is_available():
-    with TestClient(server.app, base_url="http://localhost") as client:
-        response = client.get("/health")
+def test_health_route_is_available(client):
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
 
-def test_mcp_endpoint_requires_bearer_token():
-    with TestClient(server.app, base_url="http://localhost") as client:
-        response = client.post(
-            "/mcp",
-            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
-        )
+def test_mcp_endpoint_requires_bearer_token(client):
+    response = client.post(
+        "/mcp",
+        json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+    )
     assert response.status_code == 401
     assert response.headers.get("www-authenticate") == "Bearer"
 
 
-def test_mcp_endpoint_rejects_wrong_bearer_token():
-    with TestClient(server.app, base_url="http://localhost") as client:
-        response = client.post(
-            "/mcp",
-            headers={"Authorization": "Bearer definitely-not-the-token"},
-            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
-        )
+def test_mcp_endpoint_rejects_wrong_bearer_token(client):
+    response = client.post(
+        "/mcp",
+        headers={"Authorization": "Bearer definitely-not-the-token"},
+        json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+    )
     assert response.status_code == 401
