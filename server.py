@@ -33,7 +33,15 @@ MAX_CONCURRENT_JOBS = max(1, int(os.getenv("MAX_CONCURRENT_JOBS", "1")))
 API_TOKEN = os.getenv("ENLACES_API_TOKEN", "")
 PORT = int(os.getenv("PORT", "8000"))
 
-mcp = FastMCP(SERVICE_NAME)
+security = TransportSecuritySettings(allowed_hosts=_allowed_hosts())
+mcp = FastMCP(
+    SERVICE_NAME,
+    host="0.0.0.0",
+    port=PORT,
+    transport_security=security,
+    session_idle_timeout=300,
+    max_sessions=10,
+)
 _model: WhisperModel | None = None
 _model_lock = threading.Lock()
 _job_limit = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
@@ -251,8 +259,7 @@ class BearerTokenMiddleware:
         await self.app(scope, receive, send)
 
 
-security = TransportSecuritySettings(allowed_hosts=_allowed_hosts())
-app = mcp.streamable_http_app(transport_security=security)
+app = mcp.streamable_http_app()
 app.add_middleware(BearerTokenMiddleware, token=API_TOKEN)
 
 
